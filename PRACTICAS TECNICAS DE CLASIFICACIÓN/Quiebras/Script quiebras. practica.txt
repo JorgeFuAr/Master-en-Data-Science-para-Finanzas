@@ -1,0 +1,14 @@
+setwd("C:/DAT/JESUS/UNIVERSIDAD/MASTER CUNEF/ARBOLES Quiebras")
+
+credit <- read.csv("http://www.biz.uiowa.edu/faculty/jledolter/DataMining/germancredit.csv")
+
+head(credit, 2) # comprobamos el encabezado de credit 
+
+credit$Default <- factor(credit$Default, levels=c(0,1),
+                         labels=c("no", "sí"))
+
+#Default ~ checkingstatus1 + duration + history + purpose + amount + savings + 
+                         employ + installment + status + others + residence + property + age + otherplans 
+                       + housing + cards + job+ liable , 
+                       
+
