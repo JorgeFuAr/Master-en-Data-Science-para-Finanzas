@@ -1,0 +1,171 @@
+---
+title: "Practica regresion"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#CASO PRÁCTICO 01: REGRESIÓN
+
+##Instalación y carga de las librerias necesarias para el caso de regresión.
+
+```{r}
+	#install.packages("fBasics")
+	library(fBasics)
+	#install.packages("akima")
+	library(akima)
+	#install.packages("car")
+	library(car)
+	#install.packages("gvlma")
+	library(gvlma)
+  #install.packages("rminer")
+  library(rminer)
+  #install.packages("ISLR")
+  library(ISLR)
+```
+
+```{r}
+setwd("C:/Users/jorge/Desktop/JORGE/CUNEF/MASTER/PREDICCION/MDSF_Prediccion-master/Clase02/Datos")
+datos<- read.csv("Fondos.csv", header=TRUE, sep = ";", dec=",")
+
+plot(datos$rent_1)
+```
+
+##Modelo de regresión.
+###Para establecer el modelo de regresion, eliminamos las variables no numéricas
+```{r}
+datos<- datos[,-2] #columna nombre
+datos<- datos[,-4] #columna ISIN
+datos<- datos[,-4] #columna Gestora en el dataset originado
+```
+
+###Establecemos el modelo de regresión con todas las variables (dependiente e independientes) para ver cuales son mas significativas
+```{r}
+regres01=lm(rent_1~ImportFile_CustomDelayToBuy+Dias_depl_reemb+Inv_minima_inicial+X1_Day_Return+X1_Week_Return+rent_1_mes+rent_3_meses+rent_6_meses+rent_en_el_anio+rent_en_el_anio+rent_3_anios+rent_5_anios+rent_10_anios+Capitaliz_media_bursatil+Patrimonio+Morningstar_Rating+Volatilidad_3+Sharpe_.3+Ratio_de_informacion+Media_3+Com_Gestion+ImportFile_CustomBuyFee2+Com_deposito, data=datos)
+
+summary(regres01)
+vResid=resid(regres01)
+qqPlot(regres01, labels=row.names(datos),
+       id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+
+```{r}
+set.seed(250)
+numData=nrow(datos)
+train=sample(numData ,numData/2)
+
+datosTrain<-datos[train,]
+View(datosTrain)
+```
+
+
+###Tras el primer modelo estimado, vamos estimar un modelo con menos variables
+```{r}
+
+regres01=lm(rent_1~0+ rent_en_el_anio+rent_6_meses+Capitaliz_media_bursatil+Patrimonio+Volatilidad_3+Sharpe_.3+Ratio_de_informacion+Media_3+Com_Gestion+Media_3+Estilo_inversion_.RF, data=datosTrain)
+
+
+summary(regres01)
+```
+
+
+```{r}
+fiv<-vif(regres01)
+fiv
+sqrt(fiv)>2
+
+```
+
+
+##Estimación del modelo con variables mas significativas
+###Cuanto mayor es el fiv de una variable, existe mayor riesgo de colinealidad, si la raiz cuadrada es mayor que 2.
+```{r}
+regres02=lm(rent_1~0+rent_en_el_anio+Volatilidad_3+Media_3, data=datosTrain)
+summary(regres02)
+gvmodel <- gvlma(regres02) 
+summary(gvmodel)
+fiv<-vif(regres02)
+fiv
+sqrt(fiv)>2
+```
+###Outliers
+```{r}
+outlierTest(regres02)
+```
+
+###Hacemos el influence plot de la regres02
+```{r}
+influencePlot(regres02,
+              id.method="identify",
+              main="Influence Plot", 
+              sub="Circle size is proportial to Cook's Distance" )
+```
+###Identificamos puntos de alto apalancamiento (high leverage points)
+```{r}
+hat.plot <- function(fit) {
+  p <- length(coefficients(fit))
+  n <- length(fitted(fit))
+  plot(hatvalues(fit), main="Index Plot of Hat Values")
+  abline(h=c(2,3)*p/n, col="red", lty=2)
+  identify(1:n, hatvalues(fit), names(hatvalues(fit)))
+}
+hat.plot(regres02)
+```
+
+
+###Determinamos los coeficientes del modelo de regresión.
+```{r}
+coefficients(regres02)
+```
+
+##¿Es válido el modelo?
+
+```{r}
+vResid<-resid(regres02)
+kurtosis(vResid)
+residplot <- function(fit, nbreaks=10) {
+  z <- rstudent(fit)
+  hist(z, breaks=nbreaks, freq=FALSE,
+       xlab="Studentized Residual",
+       main="Distribution of Errors")
+  rug(jitter(z), col="brown")
+  curve(dnorm(x, mean=mean(z), sd=sd(z)),
+        add=TRUE, col="blue", lwd=2)
+  lines(density(z)$x, density(z)$y,
+        col="red", lwd=2, lty=2)
+  legend("topright",
+         legend = c( "Normal Curve", "Kernel Density Curve"),
+         lty=1:2, col=c("blue","red"), cex=.7)
+}
+
+residplot(regres02)
+
+#Normalidad
+jbTest(vResid)
+
+#linealidad
+crPlots(regres02)
+```
+
+###Validamos y predecimos el modelo
+
+```{r}
+
+datosValidacion<-datos[-train,]
+rent1<-datosValidacion[,1]
+prediccion<-predict(regres02)
+#Podemos ordenar los datos para que la visualización gráfica sea mejor
+prediccion<-sort(prediccion, decreasing = TRUE) 
+a<-length(prediccion);a
+
+par(mfrow = c(1,2))#dibujo conjunto
+plot(rent1, main="rent_1: muestra de validacion")
+plot(prediccion, main="modelo regres02")
+
+mean(rent1-prediccion)
+```

@@ -1,0 +1,272 @@
+---
+title: "Ejemplo crédito Alemania(Clase03)"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Primero cargamos los datos:
+
+credit.data <- read.csv("C:/Users/jorge/Desktop/JORGE/CUNEF/MASTER/PREDICCION/MDSF_Prediccion-master/Clase03/Datos/credit0.csv", header=T)
+
+#Dividimos la muestra en 90/10 como training/testing:
+set.seed(1234)
+n=nrow(credit.data)
+id_train <- sample(1:n , 0.90*n)
+credit.train = credit.data[id_train,] 
+credit.test = credit.data[-id_train,] #En credit.train y credit.test en la variable Y los 0 es que hay default y los 1 que no
+
+nrow(credit.train)
+ncol(credit.train) #Son el numero de variables que hay, son ciegas, ya que no sabemos lo que son.
+colnames(credit.train)
+```
+
+```{r}
+#Vamos a construir un modelo de regresión logística sobre la base de todas las variables X. Nota ID se excluye del modelo.
+credit.glm0<-glm(Y~.-id,family=binomial,credit.train); #Establecemos el modelo de regresion con todas las variables excepto id, con el fin de ver cuales variables en un inicio son mas significativas, es decir, explican mejor la dependiente.
+
+summary(credit.glm0)
+
+
+```
+
+```{r}
+#La selección de variables por steps se puede aplicar a la regresión logística. ** Advertencia: esto llevará mucho tiempo **: credit.glm.step <- step(credit.glm0) 
+
+#O con BIC: credit.glm.step <- step(credit.glm0, k=log(nrow(credit.train))) 
+```
+
+```{r}
+#Establecemos el primer modelo con las variables indicadas en la formula:
+credit.glm1<-glm(Y~X3+X8+X11_2,family=binomial,credit.train); 
+
+#Caculamos todos para ver cual es mejor, es decir el que menor coeficiente tiene:
+AIC(credit.glm0) #Modelo completo
+
+AIC(credit.glm1) #Modelo con las variables escogidas
+
+BIC(credit.glm0) #BIC es bayesiano
+
+BIC(credit.glm1)
+
+```
+
+```{r}
+#Creamos un histograma del modelo con las variables escogidas:
+hist(predict(credit.glm1))
+hist(predict(credit.glm1,type="response")) #La prediccion de la probabilidad de cada observacion 
+```
+
+```{r}
+#Observamos el numero que han tenido o no default, estableciendo diferentes probabilidades:
+
+table(predict(credit.glm1,type="response") > 0.5) #Del 50%
+table(predict(credit.glm1,type="response") > 0.2) #Del 20%
+table(predict(credit.glm1,type="response") > 0.0001) #Del 0,01%
+```
+
+```{r}
+#Prediccion dentro de la muestra:
+
+prob.glm1.insample <- predict(credit.glm1,type="response")
+predicted.glm1.insample <- prob.glm1.insample > 0.2
+predicted.glm1.insample <- as.numeric(predicted.glm1.insample)
+
+#Calculamos la matriz de confusión:
+
+table(credit.train$Y, predicted.glm1.insample, dnn=c("Truth","Predicted"))
+
+#Hay muchas maneras de calcular la tasa de error. La siguiente es una forma.
+
+mean(ifelse(credit.train$Y != predicted.glm1.insample, 1, 0))
+```
+```{r}
+#Prediccion fuera de la muestra:
+prob.glm1.outsample <- predict(credit.glm1,credit.test,type="response")
+predicted.glm1.outsample <-  prob.glm1.outsample> 0.2
+predicted.glm1.outsample <- as.numeric(predicted.glm1.outsample)
+table(credit.test$Y, predicted.glm1.outsample, dnn=c("Truth","Predicted"))
+
+mean(ifelse(credit.test$Y != predicted.glm1.outsample, 1, 0)) #Determina el % de acierto del modelo.
+
+#o Así:
+
+glm1.outsample.logodds <- predict(credit.glm1,credit.test)
+predicted.glm1.outsample <- exp(glm1.outsample.logodds)/(1 + exp(glm1.outsample.logodds)) > 0.2
+predicted.glm1.outsample <- as.numeric(predicted.glm1.outsample)
+table(credit.test$Y, predicted.glm1.outsample, dnn=c("Truth","Predicted"))
+
+mean(ifelse(credit.test$Y != predicted.glm1.outsample, 1, 0))
+
+#Suele ser el caso de que la tasa de error de predicción fuera de muestra es superior a la tasa de errores en la muestra.
+
+``` 
+
+```{r}
+#CURVA ROC# La diagonal representa la peor situacion de nuestro modelo, y la otra linea representa cuan es de bueno el modelo. Lo ideal seria que la linea subiera hasta la esquina arriba a la izq y luego al final de la diagonal. En resumen, cuanto más cerca este de la diagonal, peor, cuanto más cerca de la esquina sup izquierda, mejor será el modelo.
+
+library('verification')
+
+roc.plot(credit.test$Y == '1', prob.glm1.outsample)
+
+#curva:
+
+roc.plot(credit.test$Y == '1', prob.glm1.outsample)$roc.vol
+```
+
+```{r}
+#Comparamos los dos modelos:
+prob.glm0.outsample <- predict(credit.glm0,credit.test,type="response")
+roc.plot(x= credit.test$Y == '1', pred=cbind(prob.glm0.outsample,prob.glm1.outsample), legend=TRUE, leg.text=c("Full Model","X_3, X_8, and X_11_2"))$roc.vol
+```
+
+```{r}
+#HACEMOS GRAFICO CON LIBRERIA ROCR:
+
+library(ROCR)
+pred <- prediction(prob.glm1.outsample, credit.test$Y)
+perf <- performance(pred, "tpr", "fpr")
+plot(perf, colorize=TRUE)
+
+#En la parte de la derecha con los colores nos dice la prob que tienen de verdad las tasas.
+```
+
+```{r}
+#CROSS VALIDATION: para entender la funcion de costes.
+
+pcut = 0.2 #Establecemos el punto de corte
+
+#Symmetric cost, función simétrica
+
+cost1 <- function(r, pi){
+  mean(((r==0)&(pi>pcut)) | ((r==1)&(pi<pcut))) #r tiene la variable objetivo (0 o 1) y pi las probabilidades que han salido para cada uno de ellos.
+}
+
+#Asymmetric cost, función asimétrica
+
+cost2 <- function(r, pi){
+  weight1 = 2 #peso que le das (importancia) a que pase la situación 1 
+  weight0 = 1 #peso que le das (importancia) a que pase la situación 0 
+  c1 = (r==1)&(pi<pcut) #logical vector - true if actual 1 but predict 0, siendo default decir que le doy prestamos
+  c0 = (r==0)&(pi>pcut) #logical vector - true if actual 0 but predict 1, dar default a uno que lo devolveria el prestamo
+  return(mean(weight1*c1+weight0*c0))
+}
+
+library(boot)
+
+#Calculamos con el coste1
+credit.glm3<-glm(Y~X3+X8+X11_2,family=binomial,credit.data);  
+cv.result = cv.glm(credit.data, credit.glm3 , cost1, 10)
+cv.result$delta
+
+#Calculamos con el coste2
+credit.glm3<-glm(Y~X3+X8+X11_2,family=binomial,credit.data);  
+cv.result2 = cv.glm(credit.data, credit.glm3 , cost2, 10)
+cv.result2$delta
+```
+
+```{r}
+#CALCULO DEL CUT OFF OPTIMO:
+
+#define the search grid from 0.01 to 0.99, se crea la busqueda desde 0.01 hasta 0.99 con saltos de 0.01 en 0.01
+searchgrid = seq(0.01, 0.99, 0.01)
+#result is a 99x2 matrix, the 1st col stores the cut-off p, the 2nd column stores the cost
+result = cbind(searchgrid, NA)
+#in the cost function, both r and pi are vectors, r=truth, pi=predicted probability
+cost1 <- function(r, pi){
+  weight1 = 10 #Establecemos peso de 10
+  weight0 = 1
+  c1 = (r==1)&(pi<pcut) #logical vector - true if actual 1 but predict 0
+  c0 = (r==0)&(pi>pcut) #logical vector - true if actual 0 but predict 1
+  return(mean(weight1*c1+weight0*c0))
+}
+credit.glm1<-glm(Y~X3+X8+X11_2,family=binomial,credit.train); #Estimamos el modelo 
+prob <- predict(credit.glm1,type="response") #Caculamos la probabilidad
+for(i in 1:length(searchgrid)) #Establecemos un bucle
+{
+  pcut <- result[i,1]
+  #assign the cost to the 2nd col
+  result[i,2] <- cost1(credit.train$Y, prob) #Calculamos el coste para cada uno de los posibles modelos
+}
+plot(result, ylab="Cost in Training Set")
+
+#Nos dice que el mejor corte es el 0.01, es decir que a todos los que sean mayor de 0.01 no se les de el prestamo.
+```
+
+```{r}
+#Vamos a hacer lo mismo pero esta vez vamos a darle un peso igual:
+
+#define the search grid from 0.01 to 0.99, se crea la busqueda desde 0.01 hasta 0.99 con saltos de 0.01 en 0.01
+searchgrid = seq(0.01, 0.99, 0.01)
+#result is a 99x2 matrix, the 1st col stores the cut-off p, the 2nd column stores the cost
+result = cbind(searchgrid, NA)
+#in the cost function, both r and pi are vectors, r=truth, pi=predicted probability
+cost1 <- function(r, pi){
+  weight1 = 1 #Establecemos peso de 1
+  weight0 = 1
+  c1 = (r==1)&(pi<pcut) #logical vector - true if actual 1 but predict 0
+  c0 = (r==0)&(pi>pcut) #logical vector - true if actual 0 but predict 1
+  return(mean(weight1*c1+weight0*c0))
+}
+credit.glm1<-glm(Y~X3+X8+X11_2,family=binomial,credit.train); #Estimamos el modelo 
+prob <- predict(credit.glm1,type="response") #Caculamos la probabilidad
+for(i in 1:length(searchgrid)) #Establecemos un bucle
+{
+  pcut <- result[i,1]
+  #assign the cost to the 2nd col
+  result[i,2] <- cost1(credit.train$Y, prob) #Calculamos el coste para cada uno de los posibles modelos
+}
+plot(result, ylab="Cost in Training Set")
+
+```
+
+```{r}
+#Vamos a hacer lo mismo pero esta vez vamos a darle un peso de 25:
+
+#define the search grid from 0.01 to 0.99, se crea la busqueda desde 0.01 hasta 0.99 con saltos de 0.01 en 0.01
+searchgrid = seq(0.01, 0.99, 0.01)
+#result is a 99x2 matrix, the 1st col stores the cut-off p, the 2nd column stores the cost
+result = cbind(searchgrid, NA)
+#in the cost function, both r and pi are vectors, r=truth, pi=predicted probability
+cost1 <- function(r, pi){
+  weight1 = 25 #Establecemos peso de 25, cuanto mayor pongamos mas nos aseguramos el no darme un prestamo a alguien que no nos lo va a pagar
+  weight0 = 1
+  c1 = (r==1)&(pi<pcut) #logical vector - true if actual 1 but predict 0
+  c0 = (r==0)&(pi>pcut) #logical vector - true if actual 0 but predict 1
+  return(mean(weight1*c1+weight0*c0))
+}
+credit.glm1<-glm(Y~X3+X8+X11_2,family=binomial,credit.train); #Estimamos el modelo 
+prob <- predict(credit.glm1,type="response") #Caculamos la probabilidad
+for(i in 1:length(searchgrid)) #Establecemos un bucle
+{
+  pcut <- result[i,1]
+  #assign the cost to the 2nd col
+  result[i,2] <- cost1(credit.train$Y, prob) #Calculamos el coste para cada uno de los posibles modelos
+}
+plot(result, ylab="Cost in Training Set")
+
+#Lo mejor es cortar (establecer cut off) a un valor de probabilidad que sea menor.
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
