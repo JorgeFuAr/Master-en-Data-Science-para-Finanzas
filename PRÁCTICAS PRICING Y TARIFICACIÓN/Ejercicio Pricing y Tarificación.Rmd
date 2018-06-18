@@ -1,0 +1,452 @@
+---
+title: "Ejercicio Pricing y Tarificación"
+author: "Jorge Fuertes Argüello"
+date: "22 de mayo de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### PRICING Y TARIFICACIÓN COMPAÑÍA DE SEGUROS.
+
+En el presente ejercicio vamos a intentar llevar a cabo un método de pricing y tarificación de seguros con el fin de llegar a una conclusión final de la prima que se tiene que pagar según los factores de riesgo impuestos de la persona relacionada con el seguro en cuestión. Para ello vamos a formular una función que nos guíe con preguntas condicionales (un cuestionario) hacia una solución final sobre la prima de riesgo que tiene que pagar el asegurado a la compañía de seguros. 
+
+Para calcular la prima de riesgo será necesario que el usuario del presente documento responda a una serie de preguntas relacionadas con el principio estadístico a seguir, el modelo de frecuencia y el modelo de severidad (indicando también el valor de los parámetros según el modelo escogido). Estas preguntas son:
+
+```{r}
+pricing = function(){
+    print("¿Qué principio desea aplicar para el cálculo?") # Primera pregunta a responder
+    print("1. Principio de Equivalencia")
+    print("2. Principio del Valor Esperado")
+    print("3. Principio de la Varianza")
+    print("4. Principio de la Desviacion Tipica")
+    opc=scan()
+    if (opc==1){ # En caso de seleccionar el Principio de Equivalencia deberemos elegir si siguiendo un modelo Poisson o de Binomial Negativa
+      print("Seleccione el modelo de frecuencia (N):")
+      print("1. Modelo Poisson")
+      print("2. Modelo Binomial Negativa")
+      mN=scan()
+      if (mN==1){ # Si elegimos Poisson debemos indicar el parámetro lambda de la distribución
+        print("El valor del parametro lambda (Distr. Poisson) es de:")
+        lambda=scan() # Cuando establezcamos el parámetro lamba, debemos elegir el modelo de severidad que queremos seguir
+        sprintf("Con este lambda ¿Qué modelo de severidad quieres seguir?")
+        print("1. Modelo Exponencial")
+        print("2. Modelo Gamma")
+        print("3. Modelo Normal")
+        print("4. Modelo Log-Normal")
+        mX=scan()
+        if (mX==1){ # Modelo exponencial: definir parámetro "p" para el cálculo de la prima de riesgo
+          print("El valor del parametro p de la Distribución Exponencial es de:")
+          p=scan()
+          prima=lambda*(1/p)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==2){ # Modelo Gamma: definir parámetros "a" y "b" para el cálculo de la prima de riesgo
+          print("El valor del parametro a de la Distribución Gamma es de:")
+          a=scan()
+          print("El valor del parametro b de la Distribución Gamma es de:")
+          b=scan()
+          prima=lambda*(a/b)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==3){ # Modelo Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Normal es de:")
+          sigma=scan()
+          prima=lambda*mu
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==4){ # Modelo Log-Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Log-Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Log-Normal es de:")
+          sigma=scan()
+          prima=lambda*exp(mu+0.5*(sigma^2))
+          cat("El valor de la prima es de", prima)
+        }
+      }
+      if (mN==2){ # Si elegimos el Modelo de la Binomial Negativa debemos indicar los parámetros "a" y "b" de la distribución
+        print("El valor del parametro a de la Distribución Binomial Negativa es de:")
+        a=scan()
+        print("El valor del parametro b de la Distribución Binomial Negativa es de:")
+        b=scan()
+        # Cuando están elegidos estos dos parámetros seleccionamos el modelo de Severidad que queremos:
+        print("Con estos parámetros 'a' y 'b' ¿Qué modelo de severidad quieres seguir?")
+        print("1. Modelo Exponencial")
+        print("2. Modelo Gamma")
+        print("3. Modelo Normal")
+        print("4. Modelo Log-Normal")
+        mX=scan()
+        if (mX==1){ # Modelo exponencial: definir parámetro "p" para el cálculo de la prima de riesgo
+          print("El valor del parametro p de la Distribución Exponencial es de:")
+          p=scan()
+          prima=(a*b)*(1/p)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==2){ # Modelo Gamma: definir parámetros "a" y "b" para el cálculo de la prima de riesgo
+          print("El valor del parametro a de la Distribución Gamma es de:")
+          a1=scan()
+          print("El valor del parametro b de la Distribución Gamma es de:")
+          b1=scan()
+          prima=(a*b)*(a1/b1)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==3){ # Modelo Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Normal es de:")
+          sigma=scan()
+          prima=(a*b)*mu
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==4){ # Modelo Log-Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Log-Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Log-Normal es de:")
+          sigma=scan()
+          prima=(a*b)*exp(mu+0.5*(sigma^2))
+          cat("El valor de la prima es de", prima)
+        }
+      }
+    }
+    if (opc==2){ # Si hemos elegido el Principio del Valor Esperado deberemos elegir primero el recargo de seguirdad que queremos aplicar y, en segundo lugar, si seguiremos un modelo Poisson o de Binomial Negativa
+      print("Indique el recargo de seguridad a aplicar (>0):")
+      alpha=scan()
+      print("Seleccione el modelo de frecuencia (N):")
+      print("1. Modelo Poisson")
+      print("2. Modelo Binomial Negativa")
+      mN=scan()
+      if (mN==1){ # Si elegimos Poisson debemos indicar el parámetro lambda de la distribución
+        print("El valor del parametro lambda (Distr. Poisson) es de:")
+        lambda=scan() 
+        # Cuando establezcamos el parámetro lamba, debemos elegir el modelo de severidad que queremos seguir
+        print("Con este lambda ¿Qué modelo de severidad quieres seguir?")
+        print("1. Modelo Exponencial")
+        print("2. Modelo Gamma")
+        print("3. Modelo Normal")
+        print("4. Modelo Log-Normal")
+        mX=scan()
+        if (mX==1){ # Modelo exponencial: definir parámetro "p" para el cálculo de la prima de riesgo
+          print("El valor del parametro p de la Distribución Exponencial es de:")
+          p=scan()
+          E=lambda*(1/p)
+          prima=(1+alpha)*E
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==2){ # Modelo Gamma: definir parámetros "a" y "b" para el cálculo de la prima de riesgo
+          print("El valor del parametro a de la Distribución Gamma es de:")
+          a=scan()
+          print("El valor del parametro b de la Distribución Gamma es de:")
+          b=scan()
+          E=lambda*(a/b)
+          prima=(1+alpha)*E
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==3){ # Modelo Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Normal es de:")
+          sigma=scan()
+          E=lambda*mu
+          prima=(1+alpha)*E
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==4){ # Modelo Log-Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Log-Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Log-Normal es de:")
+          sigma=scan()
+          E=lambda*exp(mu+0.5*(sigma^2))
+          prima=(1+alpha)*E
+          cat("El valor de la prima es de", prima)
+        }
+      }
+      if (mN==2){ # Si elegimos el Modelo de la Binomial Negativa debemos indicar los parámetros "a" y "b" de la distribución
+        print("El valor del parametro a (Distr. Binomial Negativa) es de:")
+        a=scan()
+        print("El valor del parametro b (Distr. Binomial Negativa) es de:")
+        b=scan()
+        # Cuando están elegidos estos dos parámetros seleccionamos el modelo de Severidad que queremos:
+        print("Con este lambda ¿Qué modelo de severidad quieres seguir?")
+        print("1. Modelo Exponencial")
+        print("2. Modelo Gamma")
+        print("3. Modelo Normal")
+        print("4. Modelo Log-Normal")
+        mX=scan()
+        if (mX==1){ # Modelo exponencial: definir parámetro "p" para el cálculo de la prima de riesgo
+          print("El valor del parametro p de la Distribución Exponencial es de:")
+          p=scan()
+          E=(a*b)*(1/p)
+          prima=(1+alpha)*E
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==2){ # Modelo Gamma: definir parámetros "a" y "b" para el cálculo de la prima de riesgo
+          print("El valor del parametro a de la Distribución Gamma es de:")
+          a1=scan()
+          print("El valor del parametro b de la Distribución Gamma es de:")
+          b1=scan()
+          E=(a*b)*(a1/b1)
+          prima=(1+alpha)*E
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==3){ # Modelo Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Normal es de:")
+          sigma=scan()
+          E=(a*b)*mu
+          prima=(1+alpha)*E
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==4){ # Modelo Log-Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Log-Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Log-Normal es de:")
+          sigma=scan()
+          E=(a*b)*exp(mu+0.5*(sigma^2))
+          prima=(1+alpha)*E
+          cat("El valor de la prima es de", prima)
+        }
+      }
+    }
+    if (opc==3){  # Si hemos elegido el Principio de la Varianza deberemos elegir, al igual que con el Ppio del Valor Esperado, primero el recargo de seguirdad que queremos aplicar y, en segundo lugar, si seguiremos un modelo Poisson o de Binomial Negativa
+      print("Indique el recargo de seguridad a aplicar (>0):")
+      alpha=scan()
+      print("Seleccione el modelo de frecuencia (N):")
+      print("1. Modelo Poisson")
+      print("2. Modelo Binomial Negativa")
+      mN=scan()
+      if (mN==1){ # Si elegimos Poisson debemos indicar el parámetro lambda de la distribución
+        print("El valor del parametro lambda (Distr. Poisson) es de:")
+        lambda=scan()
+        # Cuando establezcamos el parámetro lamba, debemos elegir el modelo de severidad que queremos seguir
+        print("Con este lambda ¿Qué modelo de severidad quieres seguir?")
+        print("1. Modelo Exponencial")
+        print("2. Modelo Gamma")
+        print("3. Modelo Normal")
+        print("4. Modelo Log-Normal")
+        mX=scan()
+        if (mX==1){ # Modelo exponencial: definir parámetro "p" para el cálculo de la prima de riesgo
+          print("El valor del parametro p de la Distribución Exponencial es de:")
+          p=scan()
+          E=lambda*(1/p)
+          V=(lambda*(1/(p^2)))+(lambda*((1/p)^2))
+          prima=E+(alpha*V)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==2){ # Modelo Gamma: definir parámetros "a" y "b" para el cálculo de la prima de riesgo
+          print("El valor del parametro a de la Distribución Gamma es de:")
+          a=scan()
+          print("El valor del parametro b de la Distribución Gamma es de:")
+          b=scan()
+          E=lambda*(a/b)
+          V=(lambda*(a/(b^2)))+(lambda*((a/b)^2))
+          prima=E+(alpha*V)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==3){ # Modelo Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Normal es de:")
+          sigma=scan()
+          E=lambda*mu
+          V=(lambda*(sigma^2))+(lambda*(mu^2))
+          prima=E+(alpha*V)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==4){ # Modelo Log-Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Log-Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Log-Normal es de:")
+          sigma=scan()
+          E=lambda*exp(mu+0.5*(sigma^2))
+          V=(lambda*(exp(2*mu+sigma^2))*(exp(sigma^2)-1))+(lambda*(exp(mu+0.5*sigma^2)^2))
+          prima=E+(alpha*V)
+          cat("El valor de la prima es de", prima)
+        }
+      }
+      if (mN==2){ # Si elegimos el Modelo de la Binomial Negativa debemos indicar los parámetros "a" y "b" de la distribución
+        print("El valor del parametro a (Distr. Binomial Negativa) es de:")
+        a=scan()
+        print("El valor del parametro b (Distr. Binomial Negativa) es de:")
+        b=scan()
+        # Cuando están elegidos estos dos parámetros seleccionamos el modelo de Severidad que queremos seguir:
+        print("Seleccione el modelo de Severidad (X):")
+        print("1. Modelo Exponencial")
+        print("2. Modelo Gamma")
+        print("3. Modelo Normal")
+        print("4. Modelo Log-Normal")
+        mX=scan()
+        if (mX==1){ # Modelo exponencial: definir parámetro "p" para el cálculo de la prima de riesgo
+          print("El valor del parametro p de la Distribución Exponencial es de:")
+          p=scan()
+          E=(a*b)*(1/p)
+          V=((a*b)*(1/(p^2)))+((a*b*(1+b))*((1/p)^2))
+          prima=E+(alpha*V)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==2){ # Modelo Gamma: definir parámetros "a" y "b" para el cálculo de la prima de riesgo
+          print("El valor del parametro a de la Distribución Gamma es de:")
+          a1=scan()
+          print("El valor del parametro b de la Distribución Gamma es de:")
+          b1=scan()
+          E=(a*b)*(a1/b1)
+          V=(a*b*(a1/(b1^2)))+((a*b*(1+b))*((a1/b1)^2))
+          prima=E+(alpha*V)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==3){ # Modelo Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Normal es de:")
+          sigma=scan()
+          E=(a*b)*mu
+          V=((a*b)*(sigma^2))+((a*b*(1+b))*(mu^2))
+          prima=E+(alpha*V)
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==4){ # Modelo Log-Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Log-Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Log-Normal es de:")
+          sigma=scan()
+          E=(a*b)*exp(mu+0.5*(sigma^2))
+          V=((a*b)*(exp(2*mu+sigma^2))*(exp(sigma^2)-1))+((a*b*(1+b))*(exp(mu+0.5*sigma^2)^2))
+          prima=E+(alpha*V)
+          cat("El valor de la prima es de", prima)
+        }
+      }
+    }
+    if (opc==4){ # Si hemos elegido el Principio de la Desviación Típica deberemos elegir, al igual que con el Ppio del Valor Esperado y de la Varianza, primero el recargo de seguirdad que queremos aplicar y, en segundo lugar, si seguiremos un modelo Poisson o de Binomial Negativa
+      print("Indique el recargo de seguridad a aplicar (>0):")
+      alpha=scan()
+      print("Seleccione el modelo de frecuencia (N):")
+      print("1. Modelo Poisson")
+      print("2. Modelo Binomial Negativa")
+      mN=scan()
+      if (mN==1){ # Si elegimos Poisson debemos indicar el parámetro lambda de la distribución
+        print("El valor del parametro lambda (Distr. Poisson) es de:")
+        lambda=scan()
+        # Cuando establezcamos el parámetro lamba, debemos elegir el modelo de severidad que queremos seguir:
+        print("Seleccione el modelo de Severidad (X):")
+        print("1. Modelo Exponencial")
+        print("2. Modelo Gamma")
+        print("3. Modelo Normal")
+        print("4. Modelo Log-Normal")
+        mX=scan()
+        if (mX==1){ # Modelo exponencial: definir parámetro "p" para el cálculo de la prima de riesgo
+          print("El valor del parametro p de la Distribución Exponencial es de:")
+          p=scan()
+          E=lambda*(1/p)
+          V=(lambda*(1/(p^2)))+(lambda*((1/p)^2))
+          prima=E+(alpha*sqrt(V))
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==2){ # Modelo Gamma: definir parámetros "a" y "b" para el cálculo de la prima de riesgo
+          print("El valor del parametro a de la Distribución Gamma es de:")
+          a=scan()
+          print("El valor del parametro b de la Distribución Gamma es de:")
+          b=scan()
+          E=lambda*(a/b)
+          V=(lambda*(a/(b^2)))+(lambda*((a/b)^2))
+          prima=E+(alpha*sqrt(V))
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==3){ # Modelo Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Normal es de:")
+          sigma=scan()
+          E=lambda*mu
+          V=(lambda*(sigma^2))+(lambda*(mu^2))
+          prima=E+(alpha*sqrt(V))
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==4){ # Modelo Log-Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Log-Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Log-Normal es de:")
+          sigma=scan()
+          E=lambda*exp(mu+0.5*(sigma^2))
+          V=(lambda*(exp(2*mu+sigma^2))*(exp(sigma^2)-1))+(lambda*(exp(mu+0.5*sigma^2)^2))
+          prima=E+(alpha*sqrt(V))
+          cat("El valor de la prima es de", prima)
+        }
+      }
+      if (mN==2){ # Si elegimos el Modelo de la Binomial Negativa debemos indicar los parámetros "a" y "b" de la distribución
+        print("El valor del parametro a (Distr. Binomial Negativa) es de:")
+        a=scan()
+        print("El valor del parametro b (Distr. Binomial Negativa) es de:")
+        b=scan()
+        # Cuando están elegidos estos dos parámetros seleccionamos el modelo de Severidad que queremos seguir:
+        print("Seleccione el modelo de Severidad (X):")
+        print("1. Modelo Exponencial")
+        print("2. Modelo Gamma")
+        print("3. Modelo Normal")
+        print("4. Modelo Log-Normal")
+        mX=scan()
+        if (mX==1){ # Modelo exponencial: definir parámetro "p" para el cálculo de la prima de riesgo
+          print("El valor del parametro p de la Distribución Exponencial es de:")
+          p=scan()
+          E=(a*b)*(1/p)
+          V=((a*b)*(1/(p^2)))+((a*b*(1+b))*((1/p)^2))
+          prima=E+(alpha*sqrt(V))
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==2){ # Modelo Gamma: definir parámetros "a" y "b" para el cálculo de la prima de riesgo
+          print("El valor del parametro a de la Distribución Gamma es de:")
+          a1=scan()
+          print("El valor del parametro b de la Distribución Gamma es de:")
+          b1=scan()
+          E=(a*b)*(a1/b1)
+          V=(a*b*(a1/(b1^2)))+((a*b*(1+b))*((a1/b1)^2))
+          prima=E+(alpha*sqrt(V))
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==3){ # Modelo Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Normal es de:")
+          sigma=scan()
+          E=(a*b)*mu
+          V=((a*b)*(sigma^2))+((a*b*(1+b))*(mu^2))
+          prima=E+(alpha*sqrt(V))
+          cat("El valor de la prima es de", prima)
+        }
+        if (mX==4){ # Modelo Log-Normal: definir parámetros "mu" y "sigma" para el cálculo de la prima de riesgo
+          print("El valor del parametro mu de la Distribución Log-Normal es de:")
+          mu=scan()
+          print("El valor del parametro sigma de la Distribución Log-Normal es de:")
+          sigma=scan()
+          E=(a*b)*exp(mu+0.5*(sigma^2))
+          V=((a*b)*(exp(2*mu+sigma^2))*(exp(sigma^2)-1))+((a*b*(1+b))*(exp(mu+0.5*sigma^2)^2))
+          prima=E+(alpha*sqrt(V))
+          cat("El valor de la prima es de", prima)
+        }
+      }
+    }
+  }
+
+```
+
+
+Una vez que hemos definido la función anterior, únicamente tenemos que ejecutar la función pricing() para comenzar el cuestionario y que finalmente nos den una prima de riesgo aproximada que debemos cobrar a nuestro cliente:
+```{r}
+pricing()
+```
+
+La prima de riesgo que debemos cobrar es "Aproximada" porque dentro de un modelo para establecerla, existen muchos factores externos que no tenemos en cuenta en el presente ejercicio como por ejemplo los reflejos de la persona, costumbres (consumición de alcohol, drogas, fiestas... etc), respeto a las reglas de circulación, experiencia al volante (kilómetros recorridos o años de experiencia)... etc.
+
+Por estas razones, el objetivo del ejercicio es conseguir llegar a una aproximación de lo que podría ser un cuestionario para llevar a cabo el pricing y la tarificación de un seguro.
+
+
+
+
+
+
+
+
+
